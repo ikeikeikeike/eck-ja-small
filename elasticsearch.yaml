@@ -41,9 +41,7 @@ spec:
       spec:
         initContainers:
         - name: install-plugins
-          command: ["/bin/sh", "-c", "
-            bin/elasticsearch-plugin install --batch org.codelibs:elasticsearch-analysis-kuromoji-ipadic-neologd:7.2.0
-          "]
+          command: ["/bin/sh", "-c", "bin/elasticsearch-plugin install --batch org.codelibs:elasticsearch-analysis-kuromoji-ipadic-neologd:7.2.0"]
         containers:
         - name: elasticsearch
           env:

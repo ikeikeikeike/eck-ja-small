@@ -1,0 +1,69 @@
+---
+
+apiVersion: elasticsearch.k8s.elastic.co/v1beta1
+kind: Elasticsearch
+metadata:
+  name: eck
+spec:
+  version: 7.3.2
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  nodeSets:
+  - name: master
+    count: 1
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+      node.store.allow_mmap: false
+      http.cors.enabled: true
+      http.cors.allow-origin: "*"
+      # https://github.com/elastic/cloud-on-k8s/issues/1172
+      # > ECK turns on security(xpack) on by default for every cluster and required.
+      # > We do not have plans to support OSS at this time.
+      #
+      # But anyway I set whatever something into below.
+      xpack.graph.enabled: false
+      xpack.ml.enabled: false
+      xpack.monitoring.enabled: false
+      xpack.watcher.enabled: false
+      xpack.security.enabled: false
+      # However I found this article which can be accessing elasticsaerch by anonymous user,
+      # it is a available to use that without authentication.
+      # > https://www.elastic.co/guide/en/elasticsearch/reference/current/anonymous-access.html
+      xpack.security.authc:
+        anonymous:
+          authz_exception: true
+          roles: apm_system, apm_user, beats_admin, beats_system, data_frame_transforms_admin, data_frame_transforms_user, enrich_user, ingest_admin, kibana_dashboard_only_user, kibana_system, kibana_admin, kibana_user, logstash_admin, logstash_system, machine_learning_admin, machine_learning_user, monitoring_user, remote_monitoring_agent, remote_monitoring_collector, reporting_user, snapshot_user, superuser, transform_admin, transform_user, transport_client, watcher_admin, watcher_user
+    podTemplate:
+      spec:
+        initContainers:
+        - name: install-plugins
+          command: ["/bin/sh", "-c", "
+            bin/elasticsearch-plugin install --batch org.codelibs:elasticsearch-analysis-kuromoji-ipadic-neologd:7.2.0
+          "]
+        containers:
+        - name: elasticsearch
+          env:
+          - name: ES_JAVA_OPTS
+            value: -Xms768m -Xmx768m
+          resources:
+            requests:
+              memory: 1024Mi
+              # cpu: 0.5
+            limits:
+              memory: 2000000Ki
+              # cpu: 1.5
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: gp2
+
